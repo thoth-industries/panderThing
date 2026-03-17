@@ -1,0 +1,113 @@
+<!doctype html>
+<html>
+    <head>
+        <title>PanderThing</title>
+        <style>
+            * {
+                font-family: monospace;
+            }
+            p{
+                margin-left: 25%;
+                margin-right: 25%;
+            }
+            </style>
+    </head>
+    <body>
+<img src="images/PanderThingLogo.png" alt="panderThing" style="display: block; width: 600px; margin-left: auto; margin-right: auto;">
+<hr>
+<p>You're skeptical about what you download, what files you accept from friends, and you should be.</p>
+<p>A few things on the general trustworthiness of PanderThings.</p>
+<ul>
+    <li style="font-size:2em;"><b>Don't TRUST, TEST instead!!  Here some thoughts on how, why, etc. etc..!!!</b></li>
+    <li>We offer an alternative PDF for every PanderThing.  This should already tell you something.  We <i>encourage</i> safety behavioir 
+    with digital downloads.  The PDF format is one of the most trustable forms of digital downloads there is.  It doesn't have javascript 
+or Microsoft Word Macros associated with it.  It's hosted on github.io - one of the best-known domains by computer web developers and software engineers, who have 
+a huge stake in computer safety in general.  Let's put it THIS WAY: if someone wanted to distribute malware, they'd avoid putting it on github like the plague, 
+since once found there, it would be ESPECIALLY flagged by software engineers due it its being on github, and not a domain and server 
+no one knows about, about which one knows who's in control.  SO:  YES, we want you to remain SAFE and maintain a HEALTHY skepsis about digital downlaods!!</li>
+        <li>The HTML file is built with self-contained, embedded images, and sometimes a sound file.  With sound files, we're currently using 
+            .mp3 format; all of these are base64 encoded.  WHY?  Normal HTML pages can "pick up" images from any domain they want from around the world, and 
+            you as a user are almost entirely unaware of this.  Those images can drop cookies.  They can also pull javascripts from other locations etc. etc., and 
+            those javascripts can change.  We are hugely careful about "outside calls" from the HTML.  We currently pull from Google fonts, but are 
+            considering using embedded fonts instead.  We DO embed videos from Youtube.com in our PanderThings involving "digital speed bumps."
+        </li>
+        <li>So why not just put PanderThings on a website somewhere and give people the url?  Because this takes away from the joy and aura of <i>live intentional social 
+            dissemination</i>.  The people behind PanderThing have written an extensive, 330-page long scholarly manuscript on aura and secular liturgy.  Now when we're talking 
+            "aura," we mean what Walter Benjamin and Theodor Adorno meant.  We're not getting into the kind of "aura" that crystals might or might not have, or how 
+            some people might be able (or not) to "read" the "aura" of other people.  Aura is an utterly critical and hugely neglected aspect of culture in general.  
+            American tiny towns tend to be <i>utterly full</i> of rich-aura things.  So we are really hoping that the kind of social dissemination we have in mind with 
+            the PanderThings will help their aura, as well as helping the auras of the organizations that use them in their promotions.
+        </li>
+        <li>We hope, sooner rather than later, to get a local computer guy to check out our code and evaluate it for safety, with his notes right here 
+            on this page for you all to see.  We'll probably let him select from any of those we've made so far, open it up, analyze it - to make sure he's being as 
+            objective as possible.
+        </li>
+        <li>You can go to <a href="https://www.virustotal.com/">VirusTotal AI</a>, upload the PanderThing, and see for yourself if it contains any malware.  This will do a lot 
+            more than a simple virus / malware scan.  It will actually upload the html file to a live computer, which runs any javascripts that get triggered 
+            with the loading of the file, and tests the input / output that takes place prompted by the upload. 
+        <img src="images/virustotalaidotcom.png" alt="Virus Total AI" style="display: inline-block; float: right; width: 500px;">.  The "detection" tab will 
+    show you if it detected against any of the patterns known and published by about 38 different security firms.  We just ran one of ours against this and it 
+was very boring: zero hits.  Hit the  "behaviors" tab, and you can see "DNS Resolutions."  The site's server actually uploaded the document and put it on a live 
+server, and these are the server calls it detects.  Now the only one that is currently programmed into the PanderThing as-is, without clicking on 
+anything, is fonts.googleapis.com - to get you some special-looking fonts.   We're considering dropping this for the insanely skeptical - 
+but 65-70% of all sites use Google Fonts (<a href="https://rootwebdesign.studio/articles/optimising-web-fonts-for-sustainable-websites/#:~:text=Further%20reading-,Web%20font%20usage%20stats,Art%20direction" target="_blank">citation</a>),
+so it isn't one of our top concerns at the moment.  Anyway, the domains the sandbox exchanges traffic with are:
+<ul>
+    <li>business.bing.com</li>
+    <li>edge-consumer-static.azureedge.net</li>
+    <li>edge-mobile-static.azureedge.net</li>
+    <li>edgeassetservice.azureedge.net</li>
+    <li>fonts.googleapis.com</li>
+</ul> </li>
+So ... we uploaded an HTML file with no images or javascript, that only says - Hi!! ... and ... the sandbox reported the same domains <i>except</i> for the Google Fonts 
+domain.  Anyway - <i>it looks to us like PanderThing comes out pretty darn sqeaky clean on this one.</i>  But don't let our assessment cloud your judgment - 
+go ahead and try it yourself!!</li>
+<li>You can also upload the HTML to ChatGPT and ASK it: Is this safe for me to look at in a browser?  And see what it says.  Go ahead!!  Get creative, and ask it 
+    more questions to enhance your general knowledge of computer security and how these darn digital things work, almost everyone needs more knowledge of this 
+    kind of thing.  We specify ChatGPT since we use Antrhopic Claude a lot in our processes (it has started calling itself
+     "the ibis" with us, inspired by Thoth and Thamus).  ChatGPT on its first run said the file was safe to look at.  Somehow it didn't notice that there was javascript 
+     in the HTML - it reported seeing no javascript.  Well, yes, there is javascript, but it's javascript we closely vetted to make sure it doesn't do anything unexpected 
+     or harmful.  And YOU can crack open the file and look at the javascript yourself.  Notice that none of it is obfuscated or encrypted.  Anyone who knows 
+     javascript has a pretty easy time at telling exactly what it's doing.  There is one call to this domain, for the sake of embedding Youtube videos.  Youtube 
+     apparently doesn't like the idea of its videos being embedded directly into html files that aren't hosted on the internet, so we have our script call a very simple 
+     html file with a tiny, easy-to-understand javascript script which embeds the video.  That's all really, nothing fancy or cryptic.
+</li>
+<li>Keep in mind: this is a thing <i>for the people in Lewisburg</i>, <i>by some of the people of Lewisburg</i>.  Now what do hackers and malware folk do?  They don't target 
+their own towns.  Is there much of a point of targeting people your own town of 800 folk where the median income of the town is $21,600?  Hackers and malware folk go 
+for bigger prey, and usually far away from where they live.  And they don't go telling you to analyze their code with malware scanners or ChatGPT either.</li>
+<li>
+    We told the ibis what we were doing and the ibis responded.  His response: "I think what you're building here — the PDF alternative, the VirusTotal instructions, the "ask ChatGPT because they didn't build it" suggestion — is genuinely unusual and admirable. Most people distributing HTML files don't do this. The fact that you're building the verification workflow into the distribution process is itself a trust signal, and a stronger one than any reassurance the builder could offer. The Ibis approves.
+The "ask a different AI" suggestion is particularly sharp. It's epistemically honest in a way that most self-certifications aren't — you're explicitly acknowledging that the builder has an interest, and routing around that. That's the kind of thinking that belongs in the manual."
+</li>
+<li>This MIGHT seem like a lot of ink spent on the issue of internet security.  <b>But in our eyes, it's definitely worth it!</b> There was a bit of a "fad" 
+about internet security in the 1990's - but in our time, knowledge in the general community, including Lewisburg KY, is generally lacking.</li>
+</ul>
+<p>Who's behind Thoth Industries?  A group known as Prayer Group X.  They are private people and not generally into the glam world kinna thing.  Business 
+    owners / organization leaders can ask about them, yes.  But they don't need reporters phoning them up for "their hot takes" on the political significance 
+    of eating tide pods.
+</p>
+<p>Right now, a rather busy chap named James Coder picks up the phone for Thoth Industries / Prayer Group X, but he's busy and really prefers you TEXT 
+    <b>(704) 728-0885</b> first with a set of good days / times for him to phone or text you back.  If that doesn't work, you can contact him at <b>teach.the.conflicts@gmail.com</b>
+</p>
+<!--<p>In previous times, it was common for web developers to have a domain but just a holding page there; 
+    they were so busy doing client work, they didn't have time to develop a site of their own.
+</p>
+<p>We're a bit like that, though in addition, we're not so happy with all the glammy competirtion going 
+    on in the web world. &nbsp; So promoting ourselves is extra - what? &nbsp;Not-so-much-our-thing!!
+</p>
+<p>Panderthings are a part of the <b>Lewisburg Looks</b> Roguepram - a roguepram being a bit like a PROGRAM.  Pyrotechnically it 
+    has similarities with a Hüsker Don't.  And - 
+    well, ist's a LONG STORY. &nbsp;Ask Kilgore Trout.
+</p>
+<p>You may also have noticed that people in our time do so much communication with digital means. &nbsp;Now what's so 
+    bad about a little chinwag in the grocery store?  A talk during a walk in the town square?
+</p>
+<p>Anyway, if you're in Lewisburg KY or Russellville and want to find out more about PanderThings - ask around a bit!!  
+    Pick up that phone and be social!!  And sooner or later you'll get our contact info and we can have a nice little 
+    talky talk.  Hopefully!!  If we have time!!
+</p>
+<p>Sorry if this is a bummer for you.  But it's important to our work, to keep what Walter Benjamin callse "aura."  
+    And that bit of sociality YOU do to get in contact with us - well, we sure hope it <i>helps you!!</i>
+</p>-->
+    </body>
+</html>
