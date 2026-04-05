@@ -125,25 +125,24 @@ var PlaylistCommentary = (function() {
   var _baseUrl = 'https://thoth-industries.github.io/panderThing/playlist-commentary/';
 
   // ── Init: fetch JSON ─────────────────────────────────────────────────────
-  function init(playlistId) {
-    if (!playlistId) return;
-    var url = _baseUrl + playlistId + '.json';
-    fetch(url)
-      .then(function(r) {
-        if (!r.ok) throw new Error('not found');
-        return r.json();
-      })
-      .then(function(json) {
-        _data = json.tracks || {};
-        _defaultColor = json.default_color || '#000000';
-        _fontSize = json.console_size || '12px';
-        _lineHeight = json.console_line_height || '1.8';
-      })
-      .catch(function() {
-        // silent — commentary is optional
-        _data = null;
-      });
-  }
+function init(playlistId) {
+  if (!playlistId) return;
+  var url = _baseUrl + playlistId + '.json';
+  fetch(url)
+    .then(function(r) {
+      if (!r.ok) throw new Error('not found');
+      return r.json();
+    })
+    .then(function(json) {
+      _data = json.tracks || {};
+      _defaultColor = json.default_color || '#000000';
+      _fontSize = json.console_size || '12px';
+      _lineHeight = json.console_line_height || '1.8';
+    })
+    .catch(function() {
+      _data = null;
+    });
+}
 
   // ── onTrack: called when a track becomes active ──────────────────────────
   function onTrack(videoId) {
