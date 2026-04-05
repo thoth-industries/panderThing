@@ -21,6 +21,11 @@ const urlParams = new URLSearchParams(queryString);
 const v_value = urlParams.get('v');
 const p_value = urlParams.get('p');
 
+var videoId = v_value;
+var playlistId = p_value;
+
+PlaylistCommentary.init(playlistId);
+
 // Display the results
 console.log(`Value of 'v': ${v_value}`); // Output: Value of 'v': 123
 console.log(`Value of 'p': ${p_value}`); // Output: Value of 'p': hello
@@ -49,7 +54,7 @@ function showVideo(videoId, playlistId) {
       allow="autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
       allowfullscreen>
     </iframe>`;
-    
+    PlaylistCommentary.onTrack(videoId);
   //wrapper.style.display = 'block';
 }
 
