@@ -147,7 +147,10 @@ var PlaylistCommentary = (function() {
 
   // ── onTrack: called when a track becomes active ──────────────────────────
   function onTrack(videoId) {
-    if (!_data || !videoId || !_data[videoId]) return;
+    if (!_data || !videoId || !_data[videoId]) {
+      console.log('---');
+      return;
+    }
     var entry = _data[videoId];
     var text = toVoice(entry.text || '', entry.voice || 'none');
     var color = entry.color || _defaultColor;
