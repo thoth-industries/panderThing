@@ -125,7 +125,7 @@ var PlaylistCommentary = (function() {
   var _baseUrl = 'https://thoth-industries.github.io/panderThing/playlist-commentary/';
 
   // ── Init: fetch JSON ─────────────────────────────────────────────────────
-function init(playlistId) {
+function init(playlistId, initialVideoId) {
   if (!playlistId) return;
   var url = _baseUrl + playlistId + '.json';
   fetch(url)
@@ -138,6 +138,8 @@ function init(playlistId) {
       _defaultColor = json.default_color || '#000000';
       _fontSize = json.console_size || '12px';
       _lineHeight = json.console_line_height || '1.8';
+      // fire immediately for the initial track now that data is ready
+      if (initialVideoId) onTrack(initialVideoId);
     })
     .catch(function() {
       _data = null;
