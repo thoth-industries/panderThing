@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
     <head>
-<script src="https://thoth-industries.github.io/panderThing/playlist-commentary.js"></script>        
+<!--<script src="https://thoth-industries.github.io/panderThing/playlist-commentary.js"></script>-->        
     </head>
     <body style="margin:0; padding:0;">
 
@@ -42,7 +42,7 @@ function showVideo(videoId, playlistId) {
   
   // Added &mute=1 to ensure autoplay works in local file environments
   // https://www.youtube.com/embed/VIDEO_ID?list=PLAYLIST_ID 
-  const embedUrl = `https://www.youtube.com/embed/${videoId}?list=${playlistId}&&mute=0&referrerpolicy="no-referrer-when-downgrade" `;
+  const embedUrl = `https://www.youtube.com/embed/${videoId}?list=${playlistId}&mute=0`;
   
   // Added 'allow' attributes which are often required for iframe features locally
   player.innerHTML = `
@@ -54,7 +54,7 @@ function showVideo(videoId, playlistId) {
       allow="autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
       allowfullscreen>
     </iframe>`;
-    PlaylistCommentary.onTrack(videoId);
+ //   PlaylistCommentary.onTrack(videoId);
   //wrapper.style.display = 'block';
 }
 
