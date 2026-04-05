@@ -33,7 +33,7 @@ console.log(`Value of 'p': ${p_value}`); // Output: Value of 'p': hello
 // You can also check if a parameter exists using .has()
 if (urlParams.has('v') && urlParams.has('p')) {
     console.log('Parameter "v" exists.');
-  //  showVideo(v_value, p_value);
+    showVideo(v_value, p_value);
 }
 
 function showVideo(videoId, playlistId) {
@@ -54,7 +54,7 @@ function showVideo(videoId, playlistId) {
       allow="autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
       allowfullscreen>
     </iframe>`;
-    PlaylistCommentary.onTrack(videoId);
+//    PlaylistCommentary.onTrack(videoId);
   //wrapper.style.display = 'block';
 }
 
