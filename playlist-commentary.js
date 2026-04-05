@@ -147,6 +147,7 @@ var PlaylistCommentary = (function() {
 
   // ── onTrack: called when a track becomes active ──────────────────────────
   function onTrack(videoId) {
+    console.log('onTrack');
     if (!_data || !videoId || !_data[videoId]) {
       console.log('---');
       return;
