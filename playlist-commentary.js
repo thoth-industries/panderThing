@@ -149,7 +149,8 @@ var PlaylistCommentary = (function() {
   function onTrack(videoId) {
     console.log('onTrack');
     if (!_data || !videoId || !_data[videoId]) {
-      console.log('---');
+   //   console.log('---');
+        console.log('---', '_data:', _data, 'videoId:', videoId);
       return;
     }
     var entry = _data[videoId];
