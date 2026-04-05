@@ -126,7 +126,10 @@ var PlaylistCommentary = (function() {
 
   // ── Init: fetch JSON ─────────────────────────────────────────────────────
 function init(playlistId, initialVideoId) {
-  if (!playlistId) return;
+  if (!playlistId){
+    console.log('*');
+    return;
+  }
   var url = _baseUrl + playlistId + '.json';
   fetch(url)
     .then(function(r) {
