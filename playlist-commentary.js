@@ -144,7 +144,7 @@ function init(playlistId, initialVideoId) {
       // fire immediately for the initial track now that data is ready
       if (initialVideoId){
       //  onTrack(initialVideoId);
-        setTimeout(1000, initialVideoId);
+        setTimeout(onTrack, 1599, initialVideoId);
       }
     })
     .catch(function() {
