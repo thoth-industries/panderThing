@@ -142,8 +142,13 @@ function init(playlistId, initialVideoId) {
       _fontSize = json.console_size || '12px';
       _lineHeight = json.console_line_height || '1.8';
       // fire immediately for the initial track now that data is ready
-      if (initialVideoId){
-        onTrack(initialVideoId);
+      if (initialVideoId) {
+  setTimeout(function() {
+    onTrack(initialVideoId);
+  }, 2000);
+//}
+//      if (initialVideoId){
+//        onTrack(initialVideoId);
         // setTimeout(() => this.greet(param), 1000);
        // setTimeout(() => this.onTrack(initialVideoId), 2000);
  //       setTimeout(2000, onTrack, initialVideoId);
