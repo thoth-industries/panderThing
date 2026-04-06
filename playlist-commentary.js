@@ -145,7 +145,7 @@ function init(playlistId, initialVideoId) {
       if (initialVideoId) {
   setTimeout(function() {
     onTrack(initialVideoId);
-  }, 9000);
+  }, 17000);
 //}
 //      if (initialVideoId){
 //        onTrack(initialVideoId);
