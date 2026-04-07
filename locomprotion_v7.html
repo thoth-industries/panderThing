@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Locomprotion — A Lewisburg Seasonal White Paper</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SEASON TOKENS
+   ═══════════════════════════════════════════════════════════════════════ */
+body.season-fallow   { --accent:#4a6080; --accent2:#2d3d52; --paper:#f2f0ee; --paper-dark:#e4e0da; --ink:#1a1a1e; --ink-light:#3a3a42; --rule:#b8b4ae; --fn-bg:#eceae6; --earth-a:rgba(18,14,10,0.72); --earth-b:rgba(18,14,10,0); }
+body.season-planting { --accent:#3a6b3a; --accent2:#254d25; --paper:#f4f7f0; --paper-dark:#e4ece0; --ink:#141a14; --ink-light:#344834; --rule:#a8c4a0; --fn-bg:#eaf0e4; --earth-a:rgba(14,28,14,0.68); --earth-b:rgba(14,28,14,0); }
+body.season-growing  { --accent:#7a6010; --accent2:#5a4408; --paper:#faf8f0; --paper-dark:#f0ece0; --ink:#1a1608; --ink-light:#3a3010; --rule:#c8b870; --fn-bg:#f4f0e0; --earth-a:rgba(28,18,8,0.72);  --earth-b:rgba(28,18,8,0);  }
+body.season-harvest  { --accent:#8b3a1a; --accent2:#6a2810; --paper:#f7f4ee; --paper-dark:#ede9df; --ink:#1a1510; --ink-light:#3d3530; --rule:#c8b89a; --fn-bg:#f0ece2; --earth-a:rgba(30,14,6,0.75);  --earth-b:rgba(30,14,6,0);  }
+body.wx-night #title-svg text {
+  fill: #c8b89a;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ROOT TOKENS
+   ═══════════════════════════════════════════════════════════════════════ */
+:root {
+  /* Decorative color — defaults to seasonal accent, weather may shift it */
+  --wx-deco:      var(--accent);
+  --fog:          0;
+  --wind-shift:   0px;
+  --sky-c1:       rgba(212,120,32,0.0);   /* transparent until weather loaded */
+  --sky-c2:       rgba(232,184,64,0.0);
+  --sky-c3:       rgba(247,244,238,0);
+  --sky-anim:     none;
+  /* Wind thresholds set via body classes */
+}
+
+/* Night mode */
+body.wx-night {
+  --paper:#0e0e10; --paper-dark:#1a1a1e;
+  --ink:#e8e4dc;   --ink-light:#a8a49c;
+  --rule:#383430;  --fn-bg:#161618;
+}
+
+/* Wind classes — set by JS based on windspeed */
+/* .windy-light: 8-15mph  .windy-mid: 15-25mph  .windy-strong: 25mph+ */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FIXED ATMOSPHERIC STRIPS
+   ═══════════════════════════════════════════════════════════════════════ */
+#sky-strip {
+  position:fixed; top:0; left:0; right:0; height:160px;
+  z-index:50; pointer-events:none;
+  background: linear-gradient(180deg,
+    var(--sky-c1) 0%, var(--sky-c1) 15%,
+    var(--sky-c2) 55%, var(--sky-c3) 100%);
+  transition:background 4s ease;
+  animation:var(--sky-anim);
+}
+#earth-strip {
+  position:fixed; bottom:0; left:0; right:0; height:90px;
+  z-index:50; pointer-events:none;
+  background:linear-gradient(0deg, var(--earth-a) 0%, var(--earth-b) 100%);
+  transition:background 4s ease, filter 4s ease;
+}
+
+@keyframes sky-breathe-sun  { 0%,100%{filter:brightness(1.00)saturate(1.00)} 40%{filter:brightness(1.06)saturate(1.08)} }
+@keyframes sky-breathe-rain { 0%,100%{filter:brightness(1.00)saturate(0.85)} 50%{filter:brightness(0.94)saturate(0.75)} }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   BASE
+   ═══════════════════════════════════════════════════════════════════════ */
+* { box-sizing:border-box; margin:0; padding:0; }
+
+body {
+  background:var(--paper); color:var(--ink);
+  font-family:'EB Garamond',Georgia,serif;
+  font-size:19px; line-height:1.78;
+  -webkit-font-smoothing:antialiased;
+  opacity:0; transition:opacity 1.4s ease, background 4s ease, color 4s ease;
+}
+body.loaded { opacity:1; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MASTHEAD — z-index:100, sits above sky strip
+   ═══════════════════════════════════════════════════════════════════════ */
+.masthead {
+  position:relative; z-index:100;
+  background:var(--accent2); color:#f0ece4;
+  text-align:center; padding:2.2rem 2rem 1.8rem;
+  border-bottom:4px solid var(--accent);
+  transition:background 4s ease, border-color 1s ease;
+}
+.masthead .pub-name {
+  font-family:'Libre Baskerville',serif; font-size:0.75rem;
+  letter-spacing:0.35em; text-transform:uppercase; color:#c8b89a; margin-bottom:0.4rem;
+}
+.masthead .season-badge {
+  display:inline-block; background:rgba(255,255,255,0.1); color:#e8e0d0;
+  font-size:0.7rem; letter-spacing:0.22em; text-transform:uppercase;
+  padding:0.3rem 1rem; margin:0.6rem 0 0.2rem;
+  border:1px solid rgba(255,255,255,0.18); font-family:'Libre Baskerville',serif;
+}
+.masthead .season-note-line {
+  font-style:italic; font-size:0.88rem; color:#b8c8c0;
+  margin-top:0.3rem; letter-spacing:0.05em;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LAYOUT
+   ═══════════════════════════════════════════════════════════════════════ */
+.page-wrap { max-width:740px; margin:0 auto; padding:3rem 2rem 7rem; }
+.article-header {
+  border-bottom:2px solid var(--ink);
+  padding-bottom:2rem; margin-bottom:2.5rem;
+  transition:border-color 1s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   WAVY SVG TITLE
+   ═══════════════════════════════════════════════════════════════════════ */
+.title-wave-wrap {
+  display:block; margin-bottom:0.8rem;
+  /* height set by JS to match font-size */
+}
+#title-svg {
+  display:block; width:100%; overflow:visible;
+}
+#title-svg text {
+  font-family:'Libre Baskerville',serif;
+  font-size:2.2rem; font-weight:700;
+  fill:var(--wx-deco);
+  transition:fill 4s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TYPOGRAPHY — body always high-contrast
+   ═══════════════════════════════════════════════════════════════════════ */
+.kicker {
+  font-family:'Libre Baskerville',serif; font-size:0.72rem;
+  letter-spacing:0.28em; text-transform:uppercase;
+  color:var(--accent); margin-bottom:0.8rem; transition:color 1s ease;
+}
+
+/* h2, h3 — seasonal color by default; weather may shift wx-deco ones */
+h2 {
+  font-family:'Libre Baskerville',serif; font-size:1.15rem; font-weight:700;
+  color:var(--accent); margin:3rem 0 1rem; padding-top:1.5rem;
+  border-top:1px solid var(--rule);
+  transition:border-color 1s ease, color 4s ease, filter 4s ease;
+  display:inline-block; /* needed for transform on hover */
+  width:100%;
+}
+h2.wx-deco { color:var(--wx-deco); filter:opacity(calc(1 - var(--fog)*0.32)); }
+
+h3 {
+  font-family:'EB Garamond',serif; font-size:1.08rem; font-weight:600;
+  font-style:italic; color:var(--accent);
+  margin:1.8rem 0 0.7rem;
+  transition:color 1s ease, filter 4s ease;
+  display:inline-block; width:100%;
+}
+h3.wx-deco { color:var(--wx-deco); filter:opacity(calc(1 - var(--fog)*0.28)); }
+
+/* ── Wind hover effects on h2, h3 ──────────────────────────────────── */
+
+/* Shake keyframes — different intensities */
+@keyframes wind-shake-light {
+  0%,100%{ transform:translateX(0);    }
+  20%    { transform:translateX(-1.5px); }
+  40%    { transform:translateX(1.8px);  }
+  60%    { transform:translateX(-1.2px); }
+  80%    { transform:translateX(1.0px);  }
+}
+@keyframes wind-shake-mid {
+  0%,100%{ transform:translateX(0);    }
+  15%    { transform:translateX(-2.5px); }
+  35%    { transform:translateX(3.0px);  }
+  55%    { transform:translateX(-2.0px); }
+  75%    { transform:translateX(2.2px);  }
+  90%    { transform:translateX(-1.5px); }
+}
+@keyframes wind-shake-strong {
+  0%,100%{ transform:translateX(0);    }
+  10%    { transform:translateX(-3.5px); }
+  28%    { transform:translateX(4.0px);  }
+  46%    { transform:translateX(-3.0px); }
+  64%    { transform:translateX(3.8px);  }
+  82%    { transform:translateX(-2.5px); }
+}
+
+/* Opacity pulse keyframes — prime numbers to avoid sync with shake */
+@keyframes wind-breathe {
+  0%,100%{ opacity:1.0;  }
+  37%    { opacity:0.82; }
+  71%    { opacity:0.91; }
+}
+
+/* Apply wind hover — only when wind class present */
+body.windy-light h2:hover,
+body.windy-light h3:hover {
+  animation:
+    wind-shake-light 0.45s ease-in-out,
+    wind-breathe 2.8s ease-in-out infinite;
+}
+body.windy-mid h2:hover,
+body.windy-mid h3:hover {
+  animation:
+    wind-shake-mid 0.38s ease-in-out,
+    wind-breathe 2.3s ease-in-out infinite;
+}
+body.windy-strong h2:hover,
+body.windy-strong h3:hover {
+  animation:
+    wind-shake-strong 0.30s ease-in-out,
+    wind-breathe 1.9s ease-in-out infinite;
+}
+
+/* ── Remaining typography ────────────────────────────────────────────── */
+.subtitle {
+  font-family:'EB Garamond',serif; font-size:1.15rem; font-style:italic;
+  color:var(--ink-light); margin-bottom:1rem;
+}
+.deck {
+  font-size:1.05rem; font-style:italic; color:var(--ink-light);
+  line-height:1.65; border-left:3px solid var(--accent);
+  padding-left:1.2rem; margin:1.2rem 0; transition:border-color 1s ease;
+}
+.byline {
+  font-size:0.82rem; letter-spacing:0.1em; text-transform:uppercase;
+  color:var(--accent); margin-top:1.2rem; transition:color 1s ease;
+}
+
+p { margin-bottom:1.35rem; text-align:justify; hyphens:auto; }
+
+/* Drop cap — weather deco + fog + wind shift */
+.drop-cap::first-letter {
+  font-family:'Libre Baskerville',serif;
+  font-size:4rem; font-weight:700;
+  float:left; line-height:0.8; padding-right:0.12em; padding-top:0.05em;
+  color:var(--wx-deco);
+  filter:opacity(calc(1 - var(--fog)*0.3));
+  transform:translateX(var(--wind-shift));
+  transition:color 4s ease, filter 4s ease, transform 4s ease;
+}
+
+blockquote {
+  border-left:3px solid var(--accent); padding-left:1.3rem;
+  margin:1.5rem 0 1.5rem 1rem; font-style:italic;
+  color:var(--ink-light); font-size:0.97rem; line-height:1.7;
+  transition:border-color 1s ease;
+}
+
+.section-break {
+  text-align:center; margin:2.5rem 0; font-size:1.1rem; letter-spacing:0.5em;
+  transition:color 4s ease, filter 4s ease;
+}
+.section-break.wx-deco     { color:var(--wx-deco); filter:opacity(calc(1 - var(--fog)*0.4)); }
+.section-break.season-deco { color:var(--accent); }
+
+.pullquote {
+  border-top:2px solid var(--accent); border-bottom:2px solid var(--accent);
+  padding:1.3rem 0; margin:2.5rem 0; text-align:center;
+  font-size:1.28rem; font-style:italic; color:var(--ink); line-height:1.45;
+  transition:border-color 1s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   BOXES
+   ═══════════════════════════════════════════════════════════════════════ */
+.smed-box {
+  background:var(--paper-dark); border:1px solid var(--rule);
+  border-left:5px solid var(--accent); padding:1rem 1.4rem; margin:2rem 0;
+  font-size:0.88rem; line-height:1.65; transition:border-color 1s ease;
+}
+.smed-box strong {
+  font-family:'Libre Baskerville',serif; font-size:0.7rem;
+  letter-spacing:0.2em; text-transform:uppercase;
+  color:var(--accent); display:block; margin-bottom:0.4rem;
+}
+.smed-box em { color:var(--ink-light); }
+
+.spec-warning {
+  background:var(--fn-bg); border:1px solid var(--rule);
+  border-left:4px solid var(--accent); padding:0.9rem 1.3rem; margin:1.8rem 0;
+  font-size:0.88rem; font-style:italic; color:var(--ink-light); line-height:1.6;
+  transition:border-color 1s ease;
+}
+.spec-warning strong {
+  font-style:normal; font-family:'Libre Baskerville',serif;
+  font-size:0.72rem; letter-spacing:0.18em; text-transform:uppercase;
+  color:var(--accent); display:block; margin-bottom:0.4rem;
+}
+
+.data-box {
+  background:var(--paper-dark); border:1px solid var(--rule);
+  border-left:4px solid var(--accent2); padding:1.2rem 1.5rem; margin:2rem 0;
+  font-size:0.91rem; line-height:1.65; transition:border-color 1s ease;
+}
+.data-box .box-label {
+  font-family:'Libre Baskerville',serif; font-size:0.72rem;
+  letter-spacing:0.22em; text-transform:uppercase;
+  color:var(--accent2); margin-bottom:0.6rem; display:block;
+  transition:color 1s ease;
+}
+.data-box .spec-note {
+  font-style:italic; font-size:0.82rem; color:var(--ink-light); margin-top:0.6rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FOOTNOTES & COLOPHON
+   ═══════════════════════════════════════════════════════════════════════ */
+sup.fn-ref {
+  font-size:0.7rem; color:var(--accent);
+  font-family:'Libre Baskerville',serif; vertical-align:super; line-height:0;
+}
+.footnotes {
+  border-top:2px solid var(--rule); margin-top:4rem; padding-top:1.5rem;
+}
+.footnotes h2 {
+  font-size:0.85rem; letter-spacing:0.2em; text-transform:uppercase;
+  border-top:none; padding-top:0; margin-top:0; margin-bottom:1.2rem;
+  color:var(--ink-light); display:block;
+  /* footnote h2 — no wind shake, it's structural not decorative */
+  animation:none !important;
+}
+.footnote {
+  font-size:0.85rem; line-height:1.62; margin-bottom:0.9rem;
+  padding-left:1.8rem; position:relative; color:var(--ink-light);
+}
+.footnote .fn-num {
+  position:absolute; left:0; color:var(--accent);
+  font-family:'Libre Baskerville',serif; font-weight:700;
+}
+.colophon {
+  margin-top:4rem; padding-top:1.5rem; border-top:1px solid var(--rule);
+  font-size:0.78rem; color:var(--ink-light); text-align:center;
+  letter-spacing:0.05em; line-height:1.9;
+}
+.colophon em { color:var(--accent); transition:color 1s ease; }
+.close-graf {
+  margin-top:2.5rem; padding-top:1.5rem; border-top:1px solid var(--rule);
+  font-size:0.97rem; font-style:italic; color:var(--ink-light);
+  line-height:1.75; text-align:center;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   WEATHER BUTTON & CARD
+   ═══════════════════════════════════════════════════════════════════════ */
+#weather-btn {
+  position:fixed; bottom:1.4rem; right:1.4rem;
+  background:var(--accent2); color:#f0ece4;
+  font-family:'Libre Baskerville',serif; font-size:0.68rem;
+  letter-spacing:0.15em; text-transform:uppercase;
+  border:1px solid rgba(255,255,255,0.15);
+  padding:0.5rem 0.9rem; cursor:pointer;
+  transition:background 0.3s ease;
+  z-index:200; max-width:180px; text-align:center; line-height:1.5;
+}
+#weather-btn:hover { background:var(--accent); }
+
+#weather-card {
+  position:fixed; bottom:4.5rem; right:1.4rem;
+  background:var(--accent2); color:#f0ece4;
+  font-family:'EB Garamond',Georgia,serif; font-size:0.92rem;
+  line-height:1.65; padding:1rem 1.3rem;
+  border:1px solid rgba(255,255,255,0.15);
+  max-width:230px; z-index:200; display:none;
+  transition:background 4s ease;
+}
+#weather-card .w-label {
+  font-family:'Libre Baskerville',serif; font-size:0.65rem;
+  letter-spacing:0.2em; text-transform:uppercase;
+  color:#c8b89a; margin-bottom:0.4rem; display:block;
+}
+#weather-card .w-aura {
+  font-style:italic; font-size:0.82rem; color:#b8c8c0; margin-top:0.4rem;
+}
+#weather-card .w-dismiss {
+  display:block; margin-top:0.7rem; font-size:0.7rem;
+  letter-spacing:0.15em; text-transform:uppercase;
+  color:rgba(255,255,255,0.35); cursor:pointer;
+  font-family:'Libre Baskerville',serif;
+}
+#weather-card .w-dismiss:hover { color:rgba(255,255,255,0.7); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LOCALITY MODAL
+   ═══════════════════════════════════════════════════════════════════════ */
+#locality-overlay {
+  position:fixed; inset:0; z-index:500;
+  background:rgba(0,0,0,0.72);
+  display:flex; align-items:center; justify-content:center;
+  padding:1.5rem;
+  opacity:0; transition:opacity 0.6s ease;
+}
+#locality-overlay.visible { opacity:1; }
+
+#locality-modal {
+  background:var(--paper,#f7f4ee);
+  color:var(--ink,#1a1510);
+  max-width:560px; width:100%;
+  padding:2.2rem 2.4rem 2rem;
+  border-top:4px solid var(--accent,#8b3a1a);
+  font-family:'EB Garamond',Georgia,serif;
+  font-size:18px; line-height:1.75;
+}
+#locality-modal .modal-kicker {
+  font-family:'Libre Baskerville',serif;
+  font-size:0.7rem; letter-spacing:0.28em; text-transform:uppercase;
+  color:var(--accent,#8b3a1a); margin-bottom:0.8rem; display:block;
+}
+#locality-modal h2 {
+  font-family:'Libre Baskerville',serif; font-size:1.3rem;
+  font-weight:700; margin-bottom:1rem; color:var(--ink,#1a1510);
+  border:none; padding:0; margin-top:0;
+  animation:none !important;
+}
+#locality-modal p {
+  margin-bottom:1rem; text-align:left; hyphens:none;
+  font-size:0.95rem; color:var(--ink-light,#3d3530);
+}
+.modal-buttons {
+  display:flex; gap:1rem; margin-top:1.6rem; flex-wrap:wrap;
+}
+.modal-btn {
+  font-family:'Libre Baskerville',serif; font-size:0.72rem;
+  letter-spacing:0.18em; text-transform:uppercase;
+  padding:0.6rem 1.2rem; cursor:pointer; border:none;
+  transition:background 0.2s ease, color 0.2s ease;
+}
+.modal-btn-local {
+  background:var(--accent,#8b3a1a); color:#f0ece4;
+}
+.modal-btn-local:hover { background:var(--accent2,#6a2810); }
+.modal-btn-elsewhere {
+  background:transparent; color:var(--ink-light,#3d3530);
+  border:1px solid var(--rule,#c8b89a);
+}
+.modal-btn-elsewhere:hover { background:var(--paper-dark,#ede9df); }
+
+/* Aura pane — shown to non-local visitors */
+#aura-pane {
+  display:none;
+  font-size:0.93rem; line-height:1.72;
+  color:var(--ink-light,#3d3530);
+  border-top:1px solid var(--rule,#c8b89a);
+  margin-top:1.2rem; padding-top:1.2rem;
+}
+#aura-pane p { margin-bottom:0.8rem; }
+#aura-pane .aura-close {
+  display:inline-block; margin-top:0.8rem;
+  font-family:'Libre Baskerville',serif; font-size:0.68rem;
+  letter-spacing:0.18em; text-transform:uppercase;
+  color:var(--accent,#8b3a1a); cursor:pointer;
+  border-bottom:1px solid currentColor; padding-bottom:1px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FOOTNOTE PANE — fixed bottom, slides up on footnote/notefoot click
+   ═══════════════════════════════════════════════════════════════════════ */
+#fn-pane {
+  position:fixed; bottom:0; left:0; right:0;
+  z-index:300;
+  background:var(--accent2);
+  color:#f0ece4;
+  font-family:'EB Garamond',Georgia,serif;
+  font-size:0.95rem; line-height:1.68;
+  padding:0;
+  transform:translateY(100%);
+  transition:transform 0.35s cubic-bezier(0.22,1,0.36,1);
+  /* sits above earth strip (z:50) and weather card (z:200), below modal (z:500) */
+}
+#fn-pane.open { transform:translateY(0); }
+
+#fn-pane-inner {
+  max-width:740px; margin:0 auto;
+  padding:0.9rem 1.4rem 1.1rem;
+  position:relative;
+}
+
+#fn-pane-marker {
+  font-family:'Libre Baskerville',serif;
+  font-size:0.68rem; letter-spacing:0.2em; text-transform:uppercase;
+  color:#c8b89a; display:block; margin-bottom:0.35rem;
+}
+#fn-pane-body {
+  color:#e8e0d0;
+  padding-right:2rem; /* space for close btn */
+}
+#fn-pane-body a {
+  color:#c8b89a; text-decoration:none;
+  border-bottom:1px solid rgba(200,184,154,0.5);
+  padding-bottom:1px;
+}
+#fn-pane-body a:hover { color:#f0ece4; border-color:#f0ece4; }
+
+#fn-pane-close {
+  position:absolute; top:0.85rem; right:1rem;
+  background:none; border:none; cursor:pointer;
+  color:rgba(240,236,228,0.45); font-size:1.1rem; line-height:1;
+  padding:0.2rem 0.3rem;
+  font-family:'Libre Baskerville',serif;
+  transition:color 0.2s ease;
+}
+#fn-pane-close:hover { color:#f0ece4; }
+
+/* Superscripts — make them feel tappable without looking like buttons */
+sup.fn-ref, sup.msb-ref {
+  cursor:pointer;
+}
+sup.fn-ref:hover, sup.msb-ref:hover {
+  opacity:0.7;
+}
+/* ═══════════════════════════════════════════════════════════════════════
+   MUSICAL NOTEFOOTS
+   ═══════════════════════════════════════════════════════════════════════ */
+sup.msb-ref {
+  font-size:0.72rem;
+  color:var(--accent);
+  font-family:'EB Garamond',Georgia,serif;
+  vertical-align:super; line-height:0;
+  letter-spacing:-0.02em;
+  transition:color 1s ease;
+  cursor:default;
+}
+/* The ♫ characters sit slightly closer to the roman numeral */
+sup.msb-ref .msb-note { letter-spacing:0; }
+
+.notefoots {
+  border-top:1px dashed var(--rule);
+  margin-top:2.5rem; padding-top:1.5rem;
+  transition:border-color 1s ease;
+}
+.notefoots h2 {
+  font-size:0.85rem; letter-spacing:0.2em; text-transform:uppercase;
+  border-top:none; padding-top:0; margin-top:0; margin-bottom:0.5rem;
+  color:var(--ink-light); animation:none !important;
+}
+.notefoots .notefoot-intro {
+  font-size:0.83rem; font-style:italic; color:var(--ink-light);
+  line-height:1.62; margin-bottom:1.2rem;
+}
+.notefoot {
+  font-size:0.85rem; line-height:1.65; margin-bottom:1rem;
+  padding-left:2rem; position:relative; color:var(--ink-light);
+}
+.notefoot .nf-num {
+  position:absolute; left:0;
+  color:var(--accent); font-family:'EB Garamond',Georgia,serif;
+  font-size:0.85rem; letter-spacing:-0.02em;
+  transition:color 1s ease;
+}
+.notefoot a {
+  color:var(--accent); text-decoration:none;
+  border-bottom:1px solid currentColor; padding-bottom:1px;
+  transition:color 1s ease;
+}
+.notefoot a:hover { opacity:0.75; }
+
+@media (max-width:500px) {
+  #locality-modal { padding:1.5rem 1.3rem; }
+  .modal-buttons { flex-direction:column; }
+  .modal-btn { text-align:center; }
+}
+@media (max-width:600px) {
+  body { font-size:17px; }
+  .page-wrap { padding:1.5rem 1.2rem 7rem; }
+  #sky-strip { height:100px; }
+  #title-svg text { font-size:1.6rem; }
+  #weather-btn { font-size:0.62rem; padding:0.4rem 0.7rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOCALITY MODAL -->
+<div id="locality-overlay" role="dialog" aria-modal="true">
+  <div id="locality-modal">
+    <span class="modal-kicker">A Note on Where This Comes From</span>
+    <h2>Are you from Logan or Muhlenberg County, Kentucky?</h2>
+    <p>This document is rooted in a specific place — its ideas, its named businesses, its playlists, and its atmosphere are not generic. They emerged from a particular convergence of people, relationships, and conditions in Logan and Muhlenberg Counties that took years to develop.</p>
+    <p>We're glad you found it. Please let us know where you're coming from.</p>
+    <div class="modal-buttons">
+      <button class="modal-btn modal-btn-local" onclick="modalLocal()">I'm from this region</button>
+      <button class="modal-btn modal-btn-elsewhere" onclick="modalElsewhere()">I'm from elsewhere</button>
+    </div>
+    <div id="aura-pane">
+      <p>Welcome, and thank you for your honesty. This project emerged from a specific convergence of place, intellectual formation, local relationship, and institutional patience that took years to develop and cannot be rapidly replicated.</p>
+      <p>It is aura-sensitive in the sense that Walter Benjamin and Theodor Adorno meant by that word: its value is inseparable from its rootedness in a particular community at a particular moment. Reproductions and copycat initiatives tend to lose what made the original worth copying.</p>
+      <p>We are genuinely open to helping others develop something similar for their own context — but that help requires time, and the time is not yet. If you are willing to assist us while also waiting before deployment in your own region, and understand that waiting might be quite a while, we would be glad to hear from you. If you believe your organization has the combined circumstances of aura, intellectual lineage, local relationship, and patience that this kind of work requires, don't hesitate to reach out.</p>
+      <p>In the meantime: read the document. It was made with care.</p>
+      <p><em>Contact through the Lewisburg Looks initiative.</em></p>
+      <span class="aura-close" onclick="modalDismiss()">Continue to document ↓</span>
+    </div>
+  </div>
+</div>
+
+<!-- FIXED ATMOSPHERE -->
+<div id="sky-strip"></div>
+<div id="earth-strip"></div>
+
+<!-- WEATHER BUTTON -->
+<button id="weather-btn" onclick="toggleWeather()">Weather Aura<br>Logan County</button>
+<div id="weather-card">
+  <span class="w-label">Logan County · Now</span>
+  <div id="weather-content">Reaching out to the sky…</div>
+  <div class="w-aura" id="weather-aura"></div>
+  <span class="w-dismiss" onclick="toggleWeather()">close ×</span>
+</div>
+
+<!-- MASTHEAD -->
+<div class="masthead">
+  <div class="pub-name">A Lewisburg Initiative · Logan County, Kentucky</div>
+  <div class="season-badge" id="season-badge">SEASONAL WHITE PAPER</div>
+  <div class="season-note-line" id="season-note"></div>
+</div>
+
+<div class="page-wrap">
+
+<!-- SMED -->
+<div class="smed-box">
+  <strong>A Note on Sharing</strong>
+  This document travels best the old way. If it strikes you as worth passing on, please don't share the link on social media. Instead — mention to someone that you read something about Lewisburg and local business and a word you hadn't heard before, and tell them what you thought of it. Invite them for coffee. Let them ask for it. WRUS (Russellville, 97.3 FM) and the Logan Journal are aware of this initiative and may be worth a conversation. <em>Word of mouth is the original locomprotion.</em>
+</div>
+
+<!-- HEADER -->
+<div class="article-header">
+  <div class="kicker">Rural Co-Promotion as Cultural and Economic Strategy</div>
+
+  <!-- WAVY TITLE — SVG built by JS -->
+  <div class="title-wave-wrap">
+    <svg id="title-svg" aria-label="Locomprotion">
+      <defs>
+        <path id="wave-path" d=""/>
+      </defs>
+      <text>
+        <textPath href="#wave-path" startOffset="0%">Locomprotion</textPath>
+      </text>
+    </svg>
+  </div>
+
+  <div class="subtitle">On the Art of Small Towns Becoming Themselves</div>
+  <div class="deck">When local businesses promote each other instead of competing, they stop being isolated shops and start being a place — and people will drive an hour to experience a place in a way they will never drive an hour for a shop. This paper asks what that simple observation is worth, and to whom.</div>
+  <div class="byline">American Christian Mind Project · Lewisburg, Kentucky · <span id="pub-year">2026</span> · <span id="season-byline">Seasonal Edition</span></div>
+</div>
+
+<!-- BODY -->
+<p class="drop-cap">There is a word that does not yet exist in any dictionary, which is part of its usefulness. <em>Locomprotion</em>: local co-promotion, practiced as an art rather than a strategy, pursued with enough imagination and mutual affection that it tips from commerce into something closer to culture. A little loco. Deliberately local. Promotional in the way that a good story is promotional — not by selling but by making the listener want to be there.</p>
+
+<p>This paper is about that word, what it describes, what it could have prevented, what it might still produce, and why a small town in Logan County, Kentucky is a reasonable place to begin finding out.<sup class="msb-ref"><span class="msb-note">♫</span>&nbsp;i&nbsp;<span class="msb-note">♫</span></sup></p>
+
+<div class="section-break wx-deco">✦ ✦ ✦</div>
+<h2 class="wx-deco">I. The Tinker's Art</h2>
+
+<p>John Donne's Holy Sonnet XIV — "Batter my heart, three-person'd God" — contains an image that most readers pass over in favor of the poem's more dramatic metaphors of siege and ravishment. The speaker compares himself to a town whose mayor has surrendered it to the enemy and begs God to batter, break, blow, and burn him into genuine fidelity. But nestled inside this violence is a quieter figure: the tinker. He mends. He works with what is already there — the cracked pot, the leaking vessel, the thing that was made well once and has come apart through use and time and neglect. He does not smelt new metal or redesign the object. He restores function, carefully, with the particular attentiveness of someone who respects the original maker's intention.<sup class="fn-ref">1</sup></p>
+
+<p>The farmer who knows his combine's particular sound well enough to diagnose a problem by ear is practicing the same art. So is the man who keeps a tractor running past the point any dealership would recommend, because he knows its specific disposition and the land it has worked and neither is interchangeable with another. Robert Pirsig called this quality — the attentiveness that knows the particular thing rather than the category — the difference between a motorcycle that is understood and a motorcycle that is merely operated. Logan County has always known the difference. It knows it in its fields and its equipment sheds and its kitchens. The question is whether it knows it in its Main Streets.<sup class="fn-ref">2</sup><sup class="msb-ref"><span class="msb-note">♫</span>&nbsp;ii&nbsp;<span class="msb-note">♫</span></sup></p>
+
+<p>The blacksmith's art — breaking and reforging — belongs to forces larger than a working paper. The tinker's art is what is available to the rest of us, and it is not a small thing. Locomprotion is a tinker's art. It does not propose to rebuild rural American economic life from first principles. It proposes to mend the connective tissue between things that are already there — the coffee shop, the gift store, the local artist, the farmers' market, the congregation, the school — until they function as a system rather than as isolated points of light in the dark.</p>
+
+<p>In Russellville, Kentucky — the Logan County seat, eight miles from Lewisburg, an hour north of Nashville and an hour south of Bowling Green — there is a coffee shop called The Flying Pig and a gift and lifestyle shop called The Robyn's Nest. The Flying Pig hosts paint-ins: local artists working in community, the finished work staying in the community, hanging on walls, getting talked about in ways that a concert evaporates and a painting does not. These are not large enterprises. They are exactly the kind of businesses that the economic literature on rural decline treats as symptoms of a problem rather than seeds of a solution. This paper proposes that the literature has it backwards.<sup class="fn-ref">8</sup></p>
+
+<div class="section-break season-deco">✦ ✦ ✦</div>
+<h2 class="season-deco">II. What Was Lost, and When</h2>
+
+<div class="spec-warning">
+  <strong>Note on Method</strong>
+  The following section engages in clearly labeled speculative and counterfactual reasoning — a legitimate intellectual genre when its premises are announced rather than concealed. Historical claims are real; projections from alternate conditions are thought-experiments in service of understanding the present.
+</div>
+
+<p>Before the Sears Roebuck catalogue — before the railroad made distance irrelevant to commerce, before national brands made local provenance seem provincial — American small towns were, by necessity, locomprotional. The general store stocked the local blacksmith's tools and the local seamstress's thread and mentioned both by name. The church bulletin was the town's media ecosystem. The harvest festival was simultaneously agricultural fair, arts exhibition, and commercial marketplace. These were not utopian arrangements. They coexisted with racial exclusion, economic brutality, and the grinding limitations of a world without antibiotics or indoor plumbing. The loss of what was good in them does not require pretending that everything was good.</p>
+
+<p>But something specific was lost, and the loss is measurable. Between 1900 and 1970, the number of independent retail businesses per capita in rural American communities fell by approximately 60%.<sup class="fn-ref">3</sup> The consolidation accelerated after 1990 with big-box retail, and again after 2010 with e-commerce. What replaced the local ecosystem was a national extraction economy in which money spent in a rural community flows immediately to corporate headquarters in a distant city. The local multiplier effect dropped from an estimated 0.52 in strong local economies to 0.15 or below in communities dominated by national chains.<sup class="fn-ref">4</sup></p>
+
+<div class="data-box">
+  <span class="box-label">The Local Multiplier — Real Data</span>
+  Studies by the American Independent Business Alliance and Civic Economics consistently find that locally owned businesses recirculate 2–4 times more money within their communities than chain competitors. A dollar spent at The Flying Pig stays in Logan County at roughly three times the rate of a dollar spent at a national chain. Local owners buy local supplies, employ local people, and contribute to local civic life at rates that national chains structurally cannot match.<br><br>
+  The difference between a 0.15 and a 0.45 local multiplier, over ten years in a community of 800, represents several million dollars that either stays in the community or leaves it. The number is not the point. The mechanism is.
+  <div class="spec-note">Data: American Independent Business Alliance, 2022; Civic Economics, "Local Works," 2020. Application to Lewisburg is illustrative.</div>
+</div>
+
+<div class="section-break wx-deco">✦ ✦ ✦</div>
+<h2 class="wx-deco">III. The Chautauqua Ghost</h2>
+
+<p>Robert Pirsig opens <em>Zen and the Art of Motorcycle Maintenance</em> with a reference to the Chautauqua — the travelling tent culture of the late nineteenth and early twentieth century that brought lectures, music, theatre, and genuine intellectual engagement to rural American communities that the cities had decided didn't deserve such things. The original Chautauqua reached nearly a third of the American population at its peak. Then it was absorbed. It became a brand. The Chautauqua Institution in New York state still exists and costs several hundred dollars a week to attend. The travelling tent that came to Lewisburg does not exist.<sup class="fn-ref">5</sup></p>
+
+<p>What replaced it, eventually, was the algorithm. Each successive technology promised to bring the world to the rural community and each delivered, instead, a managed simulation designed to maximize engagement rather than produce genuine encounter. The rural community did not lose access to culture. It lost access to its <em>own</em> culture — the capacity to generate, promote, and celebrate what is specifically and irreplaceably local — and received in exchange an unlimited supply of content produced elsewhere for consumption everywhere.</p>
+
+<p>Locomprotion is not nostalgia for the Chautauqua tent. It is the recognition that the impulse the Chautauqua served did not disappear when the tent was folded. It surfaces in the decision to open a coffee shop in Lewisburg instead of commuting to Bowling Green. It surfaces every time a local business owner decides, against the apparent logic of the market, that this particular place is worth investing in. The question locomprotion asks is: what happens when those individual decisions find each other?</p>
+
+<div class="section-break season-deco">✦ ✦ ✦</div>
+<h2 class="season-deco">IV. What Locomprotion Actually Looks Like</h2>
+
+<p>The practice is simpler than the theory, which is as it should be. When The Flying Pig puts The Robyn's Nest on its chalkboard, and The Robyn's Nest puts a bag of Flying Pig coffee on its counter with a card, and both of them mention the local artist whose work hangs in both spaces, something has happened that is greater than the sum of its parts. Not because of the marketing reach — the combined social media following of three small businesses in a town of eight hundred is not a large number. But because the gesture communicates something no individual business can communicate alone: <em>this is a place.</em></p>
+
+<p>A place has a character. It generates mild but genuine curiosity in people who hear about it. It rewards the thirty-minute drive in a way that a single destination does not. The destination economy — in which a business tries to be remarkable enough on its own — is a competition small rural businesses cannot win against well-capitalized urban alternatives. The place economy is a different competition entirely, and it is one that Lewisburg can win against Nashville, because Nashville cannot be Lewisburg.</p>
+
+<p>The arts dimension is not decorative. Local music, visual art made from and about the specific landscape and community, craft traditions with genuine regional roots — these are the primary mechanism by which locomprotion generates what economists call experiential differentiation and what everyone else calls a reason to come back. The region has developed what might be called <em>musical speed bumps</em>: curated listening experiences, shared in person rather than broadcast at distance, designed to slow the ear down and widen its range without ever losing the thread back to what Logan County already loves.<sup class="fn-ref">9</sup></p>
+
+<p>The spiritual dimension belongs in this list without apology. Logan County has a serious religious culture that is, at its best, exactly what the sociological literature on community resilience identifies as a primary driver of local economic and social health: dense networks of mutual obligation, shared narrative about what the community is worth, regular gathering not organized by consumption. A locomprotional ecosystem that excludes this dimension is not describing Logan County.<sup class="msb-ref"><span class="msb-note">♫</span>&nbsp;iii&nbsp;<span class="msb-note">♫</span></sup></p>
+
+<div class="pullquote">"The destination economy is a competition small towns cannot win.<br>The place economy is a competition they cannot lose —<br>if they choose to enter it together."</div>
+
+<div class="section-break wx-deco">✦ ✦ ✦</div>
+<h2 class="wx-deco">V. What Twenty Years Could Look Like</h2>
+
+<div class="spec-warning">
+  <strong>Speculative Projection — Clearly Labeled</strong>
+  What follows applies documented economic correlations to conditions that do not yet fully exist. Thought-experiments with a mechanism, not forecasts with a guarantee.
+</div>
+
+<p>Communities with strong local business ecosystems show measurably higher civic participation, lower outmigration among young adults, higher median incomes, and lower rates of the social pathologies associated with economic despair.<sup class="fn-ref">6</sup></p>
+
+<p>Twenty years of deliberate locomprotional development in a community like Lewisburg — modestly funded, seriously practiced, connected to regional networks — could plausibly produce: a local business ecosystem retaining two to three times more economic value within the community. A cultural identity strong enough to attract the specific kind of visitor looking for exactly what Lewisburg offers. And a model replicable by any rural community with one functioning coffee shop, one functioning gift store, one local artist, and the willingness to begin.</p>
+
+<div class="data-box">
+  <span class="box-label">What Outside Investment Actually Funds</span>
+  Infrastructure investment without cultural investment produces ghost towns with better roads. Communities that retain young adults and generate genuine vitality do so because they have something — a character, an identity, a reason to be there beyond employment.<br><br>
+  The Flying Pig and The Robyn's Nest are not anchor institutions waiting for outside validation. They are the thing itself, already underway. Outside investment can accelerate but cannot create what they have already started.
+  <div class="spec-note">Community development research cited; characterization of Lewisburg businesses reflects the author's assessment of current conditions.</div>
+</div>
+
+<div class="section-break season-deco">✦ ✦ ✦</div>
+<h2 class="season-deco">VI. The Skin-in-the-Game Principle</h2>
+
+<p>Outside investment follows inside commitment. The Mondragon cooperative in the Basque region of Spain — now one of the largest worker-owned economic networks in the world — began in 1956 when a Catholic priest named José María Arizmendiarrieta persuaded five workers to invest their own savings in a cooperative factory. The outside investment that eventually scaled the model arrived because the inside commitment was already visible and credible.<sup class="fn-ref">7</sup></p>
+
+<p>Medieval craft guilds were funded by the mutual commitment of craftspeople who decided their collective reputation was worth more than their individual competition. The guild mark was a guarantee made by a community to everyone who encountered its products. Outside trust followed inside accountability.<sup class="msb-ref"><span class="msb-note">♫</span>&nbsp;iv&nbsp;<span class="msb-note">♫</span></sup></p>
+
+<p>In Lewisburg in 2026, the equivalent is modest and specific: local businesses deciding to promote each other as a regular practice, not as a favor but as a conviction. The Flying Pig mentioning The Robyn's Nest. The Robyn's Nest stocking Flying Pig coffee. Both showing up to each other's events. Both telling the story of Lewisburg as a place rather than the story of their individual businesses as destinations.</p>
+
+<p>This is the skin in the game that makes outside investment legible. Not a business plan. Not a grant application. The visible, repeated, public decision that this place is worth promoting — made by the people who have the most to lose if it isn't.</p>
+
+<div class="section-break wx-deco">✦ ✦ ✦</div>
+<h2 class="wx-deco">VII. Why This, and Why Here</h2>
+
+<p>Lewisburg is not a special case. It is a representative case — one of thousands of small American communities with enough latent cultural and economic vitality to sustain a locomprotional ecosystem, and not enough institutional support or cultural self-confidence to have developed one yet. The argument applies to any rural community with a functioning local business presence, a local arts tradition however modest, and at least one institution willing to participate in the mutual promotion of what makes that particular place worth being.</p>
+
+<p>What makes Russellville and Lewisburg a reasonable place to begin is not that they are exceptional but that they have already begun. The Flying Pig exists. The Robyn's Nest exists. WRUS carries Logan County's voice across the region. The Logan Journal carries its stories. The tinker's art requires tools, time, and the conviction that what is being mended is worth mending. The first two can be provided from outside. The third cannot. In this county, the third is already present.</p>
+
+<div class="close-graf">
+  John Donne asked to be battered into faithfulness because gentle persuasion had not been sufficient.<br>
+  Most small towns do not need battering. They need someone to notice what is already there<br>
+  and say so clearly enough that the town itself begins to believe it.<br><br>
+  <em>This is that attempt.</em><sup class="msb-ref"><span class="msb-note">♫</span>&nbsp;v&nbsp;<span class="msb-note">♫</span></sup>
+</div>
+
+<!-- FOOTNOTES -->
+<div class="footnotes">
+  <h2>Notes</h2>
+  <div class="footnote"><span class="fn-num">1.</span> John Donne, "Holy Sonnet XIV" ("Batter my heart, three-person'd God"), in <em>The Complete Poetry and Selected Prose of John Donne</em>, ed. Charles M. Coffin (New York: Modern Library, 1952). The tinker reading is one among several credible interpretations. The poem is fourteen lines and rewards looking up in full.</div>
+  <div class="footnote"><span class="fn-num">2.</span> Robert M. Pirsig, <em>Zen and the Art of Motorcycle Maintenance: An Inquiry into Values</em> (New York: Morrow, 1974). The tractor application extends Pirsig's quality argument to the Logan County context.</div>
+  <div class="footnote"><span class="fn-num">3.</span> U.S. Census Bureau, <em>Census of Business</em>, various years; synthesized in Stacy Mitchell, <em>Big-Box Swindle</em> (Boston: Beacon Press, 2006).</div>
+  <div class="footnote"><span class="fn-num">4.</span> Civic Economics, <em>Local Works</em> (2008); American Independent Business Alliance, <em>The Multiplier Effect of Local Independent Businesses</em> (2019).</div>
+  <div class="footnote"><span class="fn-num">5.</span> Andrew Rieser, <em>The Chautauqua Moment</em> (New York: Columbia University Press, 2003).</div>
+  <div class="footnote"><span class="fn-num">6.</span> Charles Marohn, <em>Strong Towns</em> (Hoboken: Wiley, 2019); strongtowns.org.</div>
+  <div class="footnote"><span class="fn-num">7.</span> William Foote Whyte and Kathleen King Whyte, <em>Making Mondragon</em> (Ithaca: ILR Press, 1988).</div>
+  <div class="footnote"><span class="fn-num">8.</span> The Flying Pig and The Robyn's Nest are located in Russellville, the Logan County seat, approximately eight miles from Lewisburg. The distinction matters: locomprotion as described here is not a single-town phenomenon but a county-scale one, with Lewisburg as conceptual and organizational hub and Russellville as current commercial anchor. This is the correct shape for a rural locomprotional ecosystem — the hub need not be the largest town, only the most committed one.</div>
+  <div class="footnote"><span class="fn-num">9.</span> <em>Musical speed bumps</em> is a Lewisburg perpetration, associated with Prayer Group X and the broader Lewisburg Looks initiative. The specific instruments are two curated playlists: <em>Logan Likes</em>, a portrait of what Logan County currently listens to and loves — local artists, genuine feeling, the region's actual sonic self-portrait — and <em>Kentucky Listens</em>, a parallax companion that widens the ear without severing the thread back home. Together they constitute what might formally be called the <em>Logan Parallax</em>: a diptych in which the familiar and the strange are held in productive tension rather than resolved. Both playlists are available on request, in person. Please do not share them digitally from a distance. They live in an economy that preceded the series of tubes. Share them when you are meeting someone and having a good, enjoyable talk. The aura is the point.</div>
+</div>
+
+<div class="notefoots">
+  <h2>Musical Notefoots</h2>
+  <p class="notefoot-intro">Musical notefoots are not footnotes in the conventional sense, as they provide no scholarly apparatus and advance no argument. They are speed bumps — invitations to stop, listen, and return. They are a Lewisburg perpetration associated with Prayer Group X. They are called notefoots because musical notes have feet too, and because the word "footnote" had already been taken. Each link opens in a new tab. The document will wait.</p>
+  <div class="notefoot">
+    <span class="nf-num">♫&nbsp;i&nbsp;♫</span>
+    <a href="https://www.youtube.com/watch?v=XR9d4ESlpHY" target="_blank" rel="noopener">FootFoot — The Shaggs (1969)</a>. A song about a cat, recorded by three sisters in New Hampshire whose father pulled them out of school to form a band because a fortune teller told him to. Frank Zappa called them his favorite group. They are the best possible introduction to the rest of this document, and to locomprotion generally. The particular thing. Noticed. Sung.
+  </div>
+  <div class="notefoot">
+    <span class="nf-num">♫&nbsp;ii&nbsp;♫</span>
+    <a href="https://www.youtube.com/watch?v=Gfn1cxZCAJk" target="_blank" rel="noopener">Oh Death — Nimrod Workman (1983)</a>. A coal miner from Mercer County, West Virginia, who spent decades underground paying attention to one thing. This is what quality attention sounds like in a human voice. Pirsig would have recognized it immediately. So will Logan County.
+  </div>
+  <div class="notefoot">
+    <span class="nf-num">♫&nbsp;iii&nbsp;♫</span>
+    <a href="https://www.youtube.com/watch?v=b8M5-POJgvA" target="_blank" rel="noopener">Glory in the Meeting House — Apollo's Fire</a>. Sacred Harp tradition, performed with the clarity of people who have decided their collective voice is worth more than their individual silence. This is the sound of inside commitment becoming outside trust. The guild mark, sung.
+  </div>
+  <div class="notefoot">
+    <span class="nf-num">♫&nbsp;iv&nbsp;♫</span>
+    <a href="https://www.youtube.com/watch?v=1yeQucos9-M" target="_blank" rel="noopener">Bonaparte's Retreat — William H. Stepp (1937)</a>. A fiddle tune recorded in Kentucky before the war by one man who had never heard of Aaron Copland. Copland later arranged it into <em>Rodeo</em>, which became canonical. The original is better. This is the journey from local to lasting that locomprotion argues is possible, played on a front porch, preserved on wire.
+  </div>
+  <div class="notefoot">
+    <span class="nf-num">♫&nbsp;v&nbsp;♫</span>
+    <a href="https://www.youtube.com/watch?v=bBjYJZ4Xtzc" target="_blank" rel="noopener">30 Seconds of Silence: Selah</a>. The final musical notefoot is thirty seconds of silence. This is not a joke, though it is also a little funny. After the tinker's argument, after Donne, after everything — thirty seconds in which nothing is managed, nothing is administered, nothing is delivered. The document ends. The silence begins. Then you can go back to your day.
+  </div>
+</div>
+  <em>American Christian Mind Project · Lewisburg, Kentucky · 2026</em><br>
+  Available for conversation. Contact through the Lewisburg Looks initiative.<br>
+  WRUS 97.3 FM · The Logan Journal · Word of mouth preferred.<br><br>
+  <em>"This is a place. People will drive an hour for a place."</em>
+</div>
+
+</div><!-- end page-wrap -->
+
+<!-- FOOTNOTE PANE -->
+<div id="fn-pane" role="complementary" aria-label="Footnote">
+  <div id="fn-pane-inner">
+    <span id="fn-pane-marker"></span>
+    <div id="fn-pane-body"></div>
+    <button id="fn-pane-close" onclick="closePane()" aria-label="Close footnote">×</button>
+  </div>
+</div>
+     ═══════════════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+
+  /* ── Season ─────────────────────────────────────────────────────── */
+  const mo = new Date().getMonth();
+  let season, slabel, snote, sbyline;
+  if      (mo>=2&&mo<=4)  { season='planting'; slabel='PLANTING SEASON'; snote='Seed what matters.';      sbyline='Spring · Planting Edition'; }
+  else if (mo>=5&&mo<=7)  { season='growing';  slabel='GROWING SEASON';  snote='Watch what takes root.'; sbyline='Summer · Growing Edition';  }
+  else if (mo>=8&&mo<=10) { season='harvest';  slabel='HARVEST SEASON';  snote='What did we grow?';      sbyline='Autumn · Harvest Edition';  }
+  else                    { season='fallow';   slabel='FALLOW SEASON';   snote='Rest. Root. Read.';      sbyline='Winter · Fallow Edition';   }
+
+  const body = document.body;
+  body.classList.add('season-'+season);
+  document.getElementById('season-badge').textContent  = slabel;
+  document.getElementById('season-note').textContent   = snote;
+  document.getElementById('season-byline').textContent = sbyline;
+  document.getElementById('pub-year').textContent      = new Date().getFullYear();
+
+  /* ── Night / Day — immediate ────────────────────────────────────── */
+  const hr      = new Date().getHours();
+  const isNight = hr<6||hr>=21;
+  const root    = document.documentElement;
+
+  if(isNight){
+    body.classList.add('wx-night');
+    root.style.setProperty('--sky-c1','rgba(4,6,16,0.90)');
+    root.style.setProperty('--sky-c2','rgba(8,10,24,0.55)');
+    root.style.setProperty('--sky-c3','rgba(14,14,16,0)');
+  }
+
+  /* ── Fade in ────────────────────────────────────────────────────── */
+  window.addEventListener('load',function(){
+    setTimeout(function(){ body.classList.add('loaded'); },200);
+  });
+
+  /* ══════════════════════════════════════════════════════════════════
+     LOCALITY MODAL
+     ══════════════════════════════════════════════════════════════════ */
+  (function initModal(){
+    const overlay = document.getElementById('locality-overlay');
+    // Show modal after brief delay so page loads first
+    setTimeout(function(){
+      overlay.style.display='flex';
+      setTimeout(function(){ overlay.classList.add('visible'); },30);
+    },600);
+  })();
+
+  window.modalLocal = function(){
+    // Local visitor — dismiss modal, proceed
+    modalDismiss();
+  };
+
+  window.modalElsewhere = function(){
+    // Non-local — show aura pane
+    const aurPane = document.getElementById('aura-pane');
+    aurPane.style.display='block';
+    // Scroll modal to show aura pane
+    document.getElementById('locality-modal').scrollTop=999;
+  };
+
+  window.modalDismiss = function(){
+    const overlay = document.getElementById('locality-overlay');
+    overlay.classList.remove('visible');
+    setTimeout(function(){ overlay.style.display='none'; },650);
+  };
+
+  /* ══════════════════════════════════════════════════════════════════
+     FOOTNOTE PANE
+     Data store: all footnotes and notefoots indexed by their marker
+     ══════════════════════════════════════════════════════════════════ */
+  const FOOTNOTES = {
+    // Scholarly footnotes — arabic numerals
+    '1': {
+      marker: 'Note 1',
+      text: 'John Donne, "Holy Sonnet XIV" ("Batter my heart, three-person\'d God"), in The Complete Poetry and Selected Prose of John Donne, ed. Charles M. Coffin (New York: Modern Library, 1952). The tinker reading is one among several credible interpretations. The poem is fourteen lines and rewards looking up in full.'
+    },
+    '2': {
+      marker: 'Note 2',
+      text: 'Robert M. Pirsig, Zen and the Art of Motorcycle Maintenance: An Inquiry into Values (New York: Morrow, 1974). The tractor application extends Pirsig\'s quality argument to the Logan County context.'
+    },
+    '3': {
+      marker: 'Note 3',
+      text: 'U.S. Census Bureau, Census of Business, various years; synthesized in Stacy Mitchell, Big-Box Swindle (Boston: Beacon Press, 2006).'
+    },
+    '4': {
+      marker: 'Note 4',
+      text: 'Civic Economics, Local Works (2008); American Independent Business Alliance, The Multiplier Effect of Local Independent Businesses (2019).'
+    },
+    '5': {
+      marker: 'Note 5',
+      text: 'Andrew Rieser, The Chautauqua Moment (New York: Columbia University Press, 2003).'
+    },
+    '6': {
+      marker: 'Note 6',
+      text: 'Charles Marohn, Strong Towns (Hoboken: Wiley, 2019); strongtowns.org.'
+    },
+    '7': {
+      marker: 'Note 7',
+      text: 'William Foote Whyte and Kathleen King Whyte, Making Mondragon (Ithaca: ILR Press, 1988).'
+    },
+    '8': {
+      marker: 'Note 8',
+      text: 'The Flying Pig and The Robyn\'s Nest are located in Russellville, the Logan County seat, approximately eight miles from Lewisburg. The distinction matters: locomprotion as described here is not a single-town phenomenon but a county-scale one, with Lewisburg as conceptual and organizational hub and Russellville as current commercial anchor. This is the correct shape for a rural locomprotional ecosystem — the hub need not be the largest town, only the most committed one.'
+    },
+    '9': {
+      marker: 'Note 9',
+      text: 'Musical speed bumps is a Lewisburg perpetration associated with Prayer Group X. The instruments are two curated playlists: Logan Likes (the region\'s sonic self-portrait) and Kentucky Listens (a parallax companion). Together: the Logan Parallax. Available on request, in person. Please do not share them digitally from a distance. They live in an economy that preceded the series of tubes.'
+    },
+    // Musical notefoots — roman numerals
+    'i': {
+      marker: '♫ Notefoot i ♫',
+      text: 'FootFoot — The Shaggs (1969). A song about a cat, recorded by three sisters in New Hampshire whose father pulled them out of school to form a band because a fortune teller told him to. Frank Zappa called them his favorite group. The particular thing. Noticed. Sung.',
+      link: 'https://www.youtube.com/watch?v=XR9d4ESlpHY',
+      linkText: 'Open FootFoot on YouTube ↗'
+    },
+    'ii': {
+      marker: '♫ Notefoot ii ♫',
+      text: 'Oh Death — Nimrod Workman (1983). A coal miner from Mercer County, West Virginia, who spent decades underground paying attention to one thing. This is what quality attention sounds like in a human voice.',
+      link: 'https://www.youtube.com/watch?v=Gfn1cxZCAJk',
+      linkText: 'Open Oh Death on YouTube ↗'
+    },
+    'iii': {
+      marker: '♫ Notefoot iii ♫',
+      text: 'Glory in the Meeting House — Apollo\'s Fire. The sound of people who decided their collective voice is worth more than their individual silence. The guild mark, sung.',
+      link: 'https://www.youtube.com/watch?v=b8M5-POJgvA',
+      linkText: 'Open Glory in the Meeting House on YouTube ↗'
+    },
+    'iv': {
+      marker: '♫ Notefoot iv ♫',
+      text: 'Bonaparte\'s Retreat — William H. Stepp (1937). A fiddle tune recorded in Kentucky before the war. Copland later arranged it into Rodeo, which became canonical. The original is better. The journey from local to lasting, played on a front porch.',
+      link: 'https://www.youtube.com/watch?v=1yeQucos9-M',
+      linkText: 'Open Bonaparte\'s Retreat on YouTube ↗'
+    },
+    'v': {
+      marker: '♫ Notefoot v ♫',
+      text: '30 Seconds of Silence: Selah. This is not a joke, though it is also a little funny. After the tinker\'s argument, after Donne, after everything — thirty seconds in which nothing is managed or delivered. The document ends. The silence begins.',
+      link: 'https://www.youtube.com/watch?v=bBjYJZ4Xtzc',
+      linkText: 'Open Selah on YouTube ↗'
+    }
+  };
+
+  let currentPaneKey = null;
+
+  window.openPane = function(key) {
+    const fn = FOOTNOTES[key];
+    if(!fn) return;
+
+    // Toggle — click same marker twice to close
+    if(currentPaneKey === key){
+      closePane();
+      return;
+    }
+    currentPaneKey = key;
+
+    document.getElementById('fn-pane-marker').textContent = fn.marker;
+
+    let html = fn.text;
+    if(fn.link){
+      html += ' <a href="'+fn.link+'" target="_blank" rel="noopener">'+fn.linkText+'</a>';
+    }
+    document.getElementById('fn-pane-body').innerHTML = html;
+    document.getElementById('fn-pane').classList.add('open');
+  };
+
+  window.closePane = function(){
+    currentPaneKey = null;
+    document.getElementById('fn-pane').classList.remove('open');
+  };
+
+  // Wire up all fn-ref superscripts
+  window.addEventListener('load', function(){
+    // Scholarly footnotes — get number from text content
+    document.querySelectorAll('sup.fn-ref').forEach(function(sup){
+      const key = sup.textContent.trim();
+      sup.addEventListener('click', function(e){
+        e.preventDefault();
+        openPane(key);
+      });
+    });
+
+    // Musical notefoots — extract roman numeral from text content
+    document.querySelectorAll('sup.msb-ref').forEach(function(sup){
+      // Text is like "♫ i ♫" — extract the middle part
+      const raw = sup.textContent.replace(/♫/g,'').replace(/\u00a0/g,'').trim();
+      sup.addEventListener('click', function(e){
+        e.preventDefault();
+        openPane(raw);
+      });
+    });
+
+    // Close pane on Escape key
+    document.addEventListener('keydown', function(e){
+      if(e.key==='Escape') closePane();
+    });
+  });
+
+  /* ══════════════════════════════════════════════════════════════════
+     WAVY TITLE — vanilla SVG textPath with rAF sine loop
+     ══════════════════════════════════════════════════════════════════ */
+  const svg      = document.getElementById('title-svg');
+  const wavePath = document.getElementById('wave-path');
+  const titleWrap= document.querySelector('.title-wave-wrap');
+
+  // Wave parameters — default (calm); weather will update windAmp/windSpeed
+  let waveAmplitude = 3.2;   // px — subtle sine height
+  let wavePeriod    = 9000;  // ms per full cycle — slow
+  let waveStart     = performance.now();
+  let svgW          = 0;
+  let svgH          = 0;
+
+  function buildSinePath(phase, amplitude, svgWidth){
+    // One full sine wave across the svg width
+    const pts = 80;
+    const baseline = svgH * 0.72; // text sits on this baseline
+    let d = '';
+    for(let i=0; i<=pts; i++){
+      const x = (i/pts)*svgWidth;
+      const y = baseline + amplitude * Math.sin((i/pts)*Math.PI*2 + phase);
+      d += (i===0?'M':'L') + x.toFixed(2)+','+y.toFixed(2);
+    }
+    return d;
+  }
+
+  function sizeSvg(){
+    // Match container width; height = font-size * 1.6 for descenders
+    svgW = titleWrap.getBoundingClientRect().width || 600;
+    // Font size: 2.2rem = 2.2 * 16 = 35.2px baseline; give headroom
+    const fs = parseFloat(getComputedStyle(svg.querySelector('text')).fontSize)||35;
+    svgH = fs * 1.65;
+    svg.setAttribute('viewBox',`0 0 ${svgW} ${svgH}`);
+    svg.setAttribute('height', svgH);
+    titleWrap.style.height = svgH+'px';
+  }
+
+  function animateWave(now){
+    const elapsed = now - waveStart;
+    const phase   = (elapsed/wavePeriod) * Math.PI * 2;
+    wavePath.setAttribute('d', buildSinePath(phase, waveAmplitude, svgW));
+    requestAnimationFrame(animateWave);
+  }
+
+  window.addEventListener('load',function(){
+    sizeSvg();
+    requestAnimationFrame(animateWave);
+  });
+  window.addEventListener('resize', sizeSvg);
+
+  /* ══════════════════════════════════════════════════════════════════
+     WEATHER
+     ══════════════════════════════════════════════════════════════════ */
+  let weatherFetched = false;
+  let cardOpen       = false;
+
+  window.toggleWeather = function(){
+    cardOpen = !cardOpen;
+    document.getElementById('weather-card').style.display = cardOpen?'block':'none';
+    if(cardOpen&&!weatherFetched){ weatherFetched=true; fetchWeather(); }
+  };
+
+  /* ── WMO helpers ────────────────────────────────────────────────── */
+  function isFog(c)   { return c>=45&&c<=49; }
+  function isRain(c)  { return (c>=51&&c<=69)||(c>=80&&c<=82)||(c>=95); }
+  function isSnow(c)  { return (c>=70&&c<=79)||(c>=85&&c<=86); }
+  function isSunny(c) { return c<=2; }
+
+  function wxDesc(c){
+    if(c===0)return'Clear sky'; if(c<=2)return'Partly cloudy';
+    if(c===3)return'Overcast';  if(c<=49)return'Fog';
+    if(c<=59)return'Drizzle';   if(c<=69)return'Rain';
+    if(c<=79)return'Snow';      if(c<=82)return'Rain showers';
+    if(c<=86)return'Snow showers'; if(c>=95)return'Thunderstorm';
+    return'Mixed conditions';
+  }
+
+  function wxAura(c,temp,wind,season){
+    if(season==='planting'){
+      if(isSunny(c)&&temp>55)return'Good planting weather. The ground is listening.';
+      if(isRain(c))          return'Soft rain. The seeds don\'t mind.';
+      if(temp<40)            return'Still waiting. The ground knows.';
+      return'Spring does what it likes. So does Lewisburg.';
+    }
+    if(season==='growing'){
+      if(isSunny(c)&&temp>78)return'Full summer. Everything is working.';
+      if(c>=95)              return'A good storm. The roots go deeper afterward.';
+      if(temp>90)            return'The kind of heat that earns the evening.';
+      return'Growing season. Something is happening whether you watch or not.';
+    }
+    if(season==='harvest'){
+      if(isSunny(c)&&temp<65)return'Harvest air. Sharp and honest.';
+      if(isRain(c))           return'Rain at harvest. Not ideal. Work anyway.';
+      if(temp<45)             return'Getting cold. Time to bring it in.';
+      return'The light is already different. You can feel what\'s coming.';
+    }
+    if(isSunny(c)&&temp<32)return'Hard freeze. The ground is resting. So should you.';
+    if(isSnow(c))          return'Snow on Logan County. Everything is quieter.';
+    if(temp>50)            return'A mild day in fallow season. Use it well.';
+    return'Winter. The document will be here when spring comes.';
+  }
+
+  /* ── Apply weather ──────────────────────────────────────────────── */
+  function applyWeather(w){
+    const c    = w.weathercode;
+    const temp = Math.round(w.temperature);
+    const wind = Math.round(w.windspeed);
+
+    /* Sky gradient */
+    let c1,c2,anim;
+    if(!isNight){
+      if(isRain(c)){
+        c1='rgba(72,78,90,0.80)'; c2='rgba(100,112,128,0.40)';
+        anim='sky-breathe-rain 90s ease-in-out infinite';
+      } else if(isSnow(c)){
+        c1='rgba(180,185,195,0.70)'; c2='rgba(200,205,215,0.35)'; anim='none';
+      } else if(isFog(c)){
+        c1='rgba(160,165,170,0.65)'; c2='rgba(185,188,192,0.30)'; anim='none';
+      } else if(isSunny(c)){
+        c1='rgba(212,120,32,0.82)'; c2='rgba(232,184,64,0.38)';
+        anim='sky-breathe-sun 70s ease-in-out infinite';
+      } else {
+        c1='rgba(168,136,80,0.72)'; c2='rgba(196,168,100,0.35)';
+        anim='sky-breathe-sun 95s ease-in-out infinite';
+      }
+      root.style.setProperty('--sky-c1',c1);
+      root.style.setProperty('--sky-c2',c2);
+      root.style.setProperty('--sky-anim',anim);
+    }
+
+    /* wx-deco color */
+    let wxDeco;
+    if(isNight)        wxDeco='#5a78a8';
+    else if(isRain(c)) wxDeco='#4a5868';
+    else if(isFog(c))  wxDeco='#708090';
+    else if(isSunny(c))wxDeco='#a86020';
+    else               wxDeco='#907040';
+    root.style.setProperty('--wx-deco',wxDeco);
+
+    /* Fog */
+    root.style.setProperty('--fog', isFog(c)?'0.42':'0');
+
+    /* Drop cap wind shift */
+    let shift='0px';
+    if(wind>25)shift='3px'; else if(wind>15)shift='1.5px'; else if(wind>8)shift='0.7px';
+    root.style.setProperty('--wind-shift',shift);
+
+    /* Earth strip */
+    const es = document.getElementById('earth-strip');
+    es.style.filter = isRain(c)||isSnow(c) ? 'brightness(0.72)' : isSunny(c) ? 'brightness(1.1)saturate(1.1)' : 'none';
+
+    /* ── Wind wave amplitude + speed ────────────────────────────── */
+    if(wind>25){
+      waveAmplitude=11; wavePeriod=3200;
+      body.classList.remove('windy-light','windy-mid');
+      body.classList.add('windy-strong');
+    } else if(wind>15){
+      waveAmplitude=6.5; wavePeriod=5500;
+      body.classList.remove('windy-light','windy-strong');
+      body.classList.add('windy-mid');
+    } else if(wind>8){
+      waveAmplitude=4; wavePeriod=7500;
+      body.classList.remove('windy-mid','windy-strong');
+      body.classList.add('windy-light');
+    } else {
+      waveAmplitude=3.2; wavePeriod=9000;
+      body.classList.remove('windy-light','windy-mid','windy-strong');
+    }
+
+    /* Card */
+    document.getElementById('weather-content').textContent =
+      temp+'°F · '+wxDesc(c)+' · Wind '+wind+' mph';
+    document.getElementById('weather-aura').textContent =
+      wxAura(c,temp,wind,season);
+  }
+
+  function fetchWeather(){
+    fetch('https://api.open-meteo.com/v1/forecast'
+      +'?latitude=36.8645&longitude=-86.8566'
+      +'&current_weather=true&temperature_unit=fahrenheit&windspeed_unit=mph')
+    .then(function(r){return r.json();})
+    .then(function(d){applyWeather(d.current_weather);})
+    .catch(function(){
+      document.getElementById('weather-content').textContent='The sky is keeping its own counsel today.';
+      document.getElementById('weather-aura').textContent='Logan County weather: check your window.';
+    });
+  }
+
+})();
+</script>
+
+</body>
+</html>
